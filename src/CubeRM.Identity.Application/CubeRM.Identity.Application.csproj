@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../CubeRM.Identity.Domain/CubeRM.Identity.Domain.csproj" />
+    <ProjectReference Include="../CubeRM.SharedKernel.Auth/CubeRM.SharedKernel.Auth.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+  </ItemGroup>
+
+</Project>

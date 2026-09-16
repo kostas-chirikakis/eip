@@ -22,8 +22,13 @@ namespace CubeRM.Identity.Infrastructure.Persistence.Interceptors;
 /// carrying the previous request's organisation will serve the next request under it —
 /// silently, and with RLS correctly enforcing the <i>wrong</i> organisation. That is the
 /// single highest-severity bug available in this design (risk register R7), which is why
-/// <see cref="ConnectionDisposing"/> is not optional and why
+/// <see cref="ConnectionClosingAsync"/> is not optional and why
 /// <c>ConnectionPoolLeakageTests</c> runs on every build rather than nightly.
+/// </para>
+/// <para>
+/// <b>Both</b> the closing and disposing hooks clear, because they are not the same event:
+/// Npgsql returns a connection to the pool on <c>Close()</c>, not on <c>Dispose()</c>.
+/// Hooking only disposal leaves the pooled path — the common one — uncleared.
 /// </para>
 /// </remarks>
 public sealed class OrgScopedConnectionInterceptor(
@@ -49,15 +54,53 @@ public sealed class OrgScopedConnectionInterceptor(
         await SetAsync(connection, tenant.OrgId.ToString(), cancellationToken);
     }
 
-    public override async Task ConnectionDisposingAsync(
+    /// <summary>
+    /// Fires just before EF calls <see cref="DbConnection.Close"/>. For Npgsql this is the
+    /// moment the connection goes back to the pool, so this is the hook that actually
+    /// prevents R7.
+    /// </summary>
+    public override async ValueTask<InterceptionResult> ConnectionClosingAsync(
         DbConnection connection,
         ConnectionEventData eventData,
-        CancellationToken cancellationToken = default)
+        InterceptionResult result)
     {
-        // Runs before the connection returns to the pool. Without this, R7.
+        await ClearOnReturnAsync(connection);
+        return result;
+    }
+
+    /// <summary>
+    /// Fires just before EF disposes the connection object. Covers the case where the
+    /// connection is owned and disposed without an explicit close.
+    /// </summary>
+    /// <remarks>
+    /// Overlapping with <see cref="ConnectionClosingAsync"/> is intentional and harmless:
+    /// <c>ClearAsync</c> is idempotent and no-ops on an already-closed connection. Clearing
+    /// twice costs a round trip that only happens on connection teardown; clearing never
+    /// costs a cross-tenant read.
+    /// </remarks>
+    public override async ValueTask<InterceptionResult> ConnectionDisposingAsync(
+        DbConnection connection,
+        ConnectionEventData eventData,
+        InterceptionResult result)
+    {
+        await ClearOnReturnAsync(connection);
+        return result;
+    }
+
+    /// <summary>
+    /// Clears the session variable, and destroys the connection rather than let it return
+    /// to the pool still carrying an organisation.
+    /// </summary>
+    /// <remarks>
+    /// Neither interception point is given a <see cref="CancellationToken"/> by EF, which is
+    /// correct for this work: a cancelled clear would return a poisoned connection to the
+    /// pool. This must run to completion or take the connection down with it.
+    /// </remarks>
+    private async Task ClearOnReturnAsync(DbConnection connection)
+    {
         try
         {
-            await ClearAsync(connection, cancellationToken);
+            await ClearAsync(connection, CancellationToken.None);
         }
         catch (Exception ex)
         {

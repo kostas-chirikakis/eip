@@ -101,7 +101,8 @@ document states product behaviour without a spike reference, it is an assumption
 | **Risk** | `set_config('app.current_org_id', …, false)` is session-scoped and connections are pooled. A connection returned without clearing the setting can serve the next request under the previous request's org. |
 | **Likelihood** | Medium — it is an easy mistake and it does not show up in single-threaded testing. |
 | **Impact** | **Critical. This is the highest-severity bug available in this design** — it would produce silent cross-tenant reads that pass every other layer, because RLS would be correctly enforcing the *wrong* org. |
-| **Action** | Clear on `ConnectionDisposing`. Dedicated concurrency test: 2-connection pool, two orgs, high concurrency, assert zero cross-reads over thousands of iterations. Consider `SET LOCAL` inside an explicit transaction as a stronger alternative. Run it in CI on every build, not nightly. |
+| **Action** | Clear on **both** `ConnectionClosingAsync` and `ConnectionDisposingAsync` — Npgsql returns a connection to the pool on `Close()`, not `Dispose()`, so hooking only disposal misses the pooled path entirely. Dedicated concurrency test: 2-connection pool, two orgs, high concurrency, assert zero cross-reads over thousands of iterations. Consider `SET LOCAL` inside an explicit transaction as a stronger alternative. Run it in CI on every build, not nightly. |
+| **Already happened once** | The first cut of `OrgScopedConnectionInterceptor` hooked disposal only, and with the wrong signature. The wrong signature is what made it visible — the compiler rejected the `override`. Had it been written as a plain method it would have compiled, read correctly in review, and never once been called. The concurrency test below is not belt-and-braces; it is the only thing that would have caught the silent version. |
 | **Effort** | 2 days including the test harness |
 
 ### R8 · Claims-enrichment endpoint availability 🔷 MEDIUM

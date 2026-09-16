@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../CubeRM.Identity.Application/CubeRM.Identity.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Brings EF Core relational (the interceptor base types) and Npgsql together. -->
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+</Project>

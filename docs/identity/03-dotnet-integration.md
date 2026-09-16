@@ -209,10 +209,16 @@ public sealed class OrgScopedConnectionInterceptor : DbConnectionInterceptor
 Two correctness requirements, both of which have bitten people:
 
 1. **`set_config(..., false)` is session-scoped, and connections are pooled.** The setting
-   must be cleared on connection return (`ConnectionDisposing`), or request N+1 can inherit
-   request N's org on a recycled connection. This is the single highest-severity bug
-   available in this design and it gets a dedicated test that hammers a small pool
-   concurrently with two orgs.
+   must be cleared on connection return, or request N+1 can inherit request N's org on a
+   recycled connection. This is the single highest-severity bug available in this design and
+   it gets a dedicated test that hammers a small pool concurrently with two orgs.
+
+   Clear on **both `ConnectionClosingAsync` and `ConnectionDisposingAsync`**. They are not
+   the same event, and the difference is the whole bug: Npgsql returns a connection to the
+   pool on `Close()`, not on `Dispose()`. An interceptor that hooks only disposal leaves the
+   pooled path — the common one — uncleared, which is precisely the case this is guarding.
+   Note also that EF passes neither hook a `CancellationToken`; that is correct here, since a
+   cancelled clear would hand a poisoned connection back to the pool.
 2. The interceptor and EF global query filters are **belt and braces, not alternatives**.
    Query filters give good error messages and good SQL; RLS gives the guarantee.
 

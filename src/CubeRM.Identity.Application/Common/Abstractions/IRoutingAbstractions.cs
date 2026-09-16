@@ -26,7 +26,16 @@ public interface IAuthorizeUrlBuilder
 {
     string BuildLocal(string clientId);
 
+    /// <param name="clientId">
+    /// The single shared app registration. One registration serves every customer, which is
+    /// what keeps onboarding customer #21 a data change rather than a portal exercise.
+    /// </param>
     /// <param name="identityProviderRef">e.g. <c>idp-acme-pharma-saml</c>. Exactly one, never a list.</param>
+    /// <param name="domainHint">
+    /// The caller's verified email domain. A hint only: it steers the sign-in page but is
+    /// not a security control, because the user can edit it. Isolation comes from the
+    /// organisation on the resolved user record, never from this value.
+    /// </param>
     string BuildFederated(string clientId, string identityProviderRef, string domainHint);
 
     /// <summary>Authorize URL against the customer's own Entra tenant (ADR-0004).</summary>

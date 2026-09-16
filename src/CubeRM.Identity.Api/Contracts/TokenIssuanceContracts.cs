@@ -27,7 +27,24 @@ public sealed record AuthenticationContext(
     [property: JsonPropertyName("correlationId")] string CorrelationId,
     [property: JsonPropertyName("user")] TokenIssuanceUser? User);
 
+/// <summary>
+/// The user Entra passes to the enrichment endpoint.
+/// </summary>
+/// <remarks>
+/// Every field other than <paramref name="Id"/> is nullable because Entra does not
+/// guarantee them — a federated user in particular may arrive with no <c>mail</c> at all,
+/// depending on what the customer's IdP asserts. Treat them as telemetry. The organisation
+/// is resolved from the stored user record keyed on (issuer, oid); deriving it from a
+/// display name or an email string in this payload would make the claim spoofable by
+/// whoever controls the asserting IdP.
+/// </remarks>
 /// <param name="Id">The directory object id. This — not <c>sub</c> — is the durable user key.</param>
+/// <param name="Mail">Primary email, when the directory has one. Absent more often than expected.</param>
+/// <param name="UserPrincipalName">
+/// The directory UPN. For a federated user this is an Entra-internal form, not the address
+/// the user typed, so it is not a routing input.
+/// </param>
+/// <param name="DisplayName">For log correlation only.</param>
 public sealed record TokenIssuanceUser(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("mail")] string? Mail,

@@ -69,10 +69,17 @@ Everything below was executed in the authoring environment, not merely written.
 | Customer declarations valid, no domain collisions | 3/3 |
 | Validator rejects domain collision, `selfServiceSignUp`, unverified-domain JIT | Pass |
 
-**The C# has not been compiled** — there was no .NET SDK available. Treat `src/` as
-reviewed scaffolding: the shapes, layering and safety contracts are deliberate, but expect
-to fix using directives and package references on first build. One seam is intentionally
-unimplemented and marked: `CubeTenantContextMiddleware.ResolveCubeUserId`.
+| .NET solution builds, Release, warnings-as-errors | **6/6 projects, 0 warnings** |
+
+**What building it found.** Three defects, one of which mattered: the R7 connection-pool
+guard was hooked to `ConnectionDisposing` alone, which does not fire when Npgsql returns a
+connection to the pool. See R7 in [the risk register](docs/identity/07-risk-register.md).
+The other two were incomplete `<param>` documentation.
+
+`src/` now compiles, but **compiling is not working**. There are no unit tests, no host
+(`CubeRM.Identity.Api` is a library of endpoint definitions with no `Program.cs`), and one
+seam is intentionally unimplemented and marked:
+`CubeTenantContextMiddleware.ResolveCubeUserId`.
 
 ## Running the checks
 

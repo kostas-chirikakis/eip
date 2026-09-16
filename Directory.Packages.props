@@ -1,0 +1,29 @@
+<Project>
+
+  <!--
+    Central package management: one version per package for the whole repository.
+
+    The alternative — versions in each .csproj — drifts, and a repository where two services
+    validate tokens with two versions of the same JWT library is a repository where a
+    security fix lands in one of them.
+  -->
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      MediatR is pinned to the 12.x line on purpose. 13.0 moved to a commercial licence;
+      12.4.1 is the last Apache-2.0 release. Moving to 13 is a procurement decision, not a
+      dependency bump, so the pin is here to make that visible rather than automatic.
+    -->
+    <PackageVersion Include="MediatR" Version="12.4.1" />
+
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.11" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.10" />
+  </ItemGroup>
+
+</Project>

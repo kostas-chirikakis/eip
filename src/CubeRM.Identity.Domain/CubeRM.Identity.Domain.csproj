@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The domain has no dependencies and must keep none. No EF Core, no ASP.NET, no MediatR.
+    If something here needs a package, the thing it needs probably belongs in Application
+    or Infrastructure instead.
+  -->
+
+</Project>

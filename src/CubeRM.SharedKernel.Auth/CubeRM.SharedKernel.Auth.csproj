@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Consumed by every Cube RM API. It carries middleware and DI extensions, so it needs the
+    ASP.NET Core shared framework — referenced rather than pulled in as packages, which
+    keeps it on the host's patched runtime instead of pinning its own copies.
+  -->
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Not part of the shared framework since .NET 5; must be referenced explicitly. -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+  </ItemGroup>
+
+</Project>

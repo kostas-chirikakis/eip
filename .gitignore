@@ -1,0 +1,22 @@
+# .NET build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+
+# Test and coverage output
+[Tt]est[Rr]esult*/
+*.trx
+coverage*.xml
+
+# Local tooling
+.vs/
+.idea/
+*.swp
+
+# Python (spike harness)
+__pycache__/
+*.py[cod]
+.pytest_cache/
