@@ -49,7 +49,12 @@ app.UseCubeTenantContext();   // after UseAuthentication
 
 ## Scaffolding status
 
+Compiles clean under `net8.0` with warnings-as-errors, as part of `CubeRM.Identity.sln`.
+
+It is still scaffolding in the sense that matters: **there are no tests**. Nothing here has
+been exercised against a real token, and the negative cases are the ones worth writing first
+— a token from an untrusted issuer, a token with no `cube_org_id`, a token from a suspended
+organisation, and the v1.0/v2.0 issuer-string mismatch that R1 exists to pin down.
+
 `CubeTenantContextMiddleware.ResolveCubeUserId` throws `NotImplementedException` — it is the
-one intentional seam, pending the `identity.users` lookup. Everything else is complete in
-shape but **has not been compiled** (no .NET SDK in the authoring environment). Treat it as
-reviewed scaffolding: expect to fix using directives and package references on first build.
+one intentional seam, pending the `identity.users` lookup.

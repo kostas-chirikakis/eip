@@ -13,6 +13,21 @@ on:
     branches: [main]
 
 jobs:
+  build:
+    name: Build (.NET)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      # Locked restore: fails if a package version drifts from the central manifest
+      # rather than silently resolving something newer.
+      - run: dotnet restore CubeRM.Identity.sln
+      # TreatWarningsAsErrors is set repo-wide in Directory.Build.props, so a new warning
+      # fails here. That is deliberate — see the comment in that file.
+      - run: dotnet build CubeRM.Identity.sln --no-restore -c Release
+
   customer-declarations:
     name: Customer declarations
     runs-on: ubuntu-latest

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Currently the declaration model and the reconciler contracts only. A YAML parser, a
+    Graph client and a CLI host arrive with the reconciler implementations; adding those
+    packages now would only claim capability that is not here.
+  -->
+
+</Project>

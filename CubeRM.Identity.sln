@@ -1,0 +1,62 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3EC21B19-54CF-467B-8995-30951FE7D9FF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CubeRM.Identity.Api", "src\CubeRM.Identity.Api\CubeRM.Identity.Api.csproj", "{80EC270A-9D9E-4BD8-BA82-1D76B3201CDA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CubeRM.Identity.Application", "src\CubeRM.Identity.Application\CubeRM.Identity.Application.csproj", "{12DE9EFF-2362-41B6-B1B9-8A6CAF647A18}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CubeRM.Identity.Domain", "src\CubeRM.Identity.Domain\CubeRM.Identity.Domain.csproj", "{35F9692A-D58E-4361-AD4F-7A90E1E79910}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CubeRM.Identity.Infrastructure", "src\CubeRM.Identity.Infrastructure\CubeRM.Identity.Infrastructure.csproj", "{C0AFF9C6-086C-43E6-BED4-0571E851EFE5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CubeRM.Identity.Provisioning", "src\CubeRM.Identity.Provisioning\CubeRM.Identity.Provisioning.csproj", "{597FB091-4D6A-4DD4-8D02-6C1AF0B48CE2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CubeRM.SharedKernel.Auth", "src\CubeRM.SharedKernel.Auth\CubeRM.SharedKernel.Auth.csproj", "{6B6C09A1-7318-4B3E-84CB-BE8A9CFD5587}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{80EC270A-9D9E-4BD8-BA82-1D76B3201CDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80EC270A-9D9E-4BD8-BA82-1D76B3201CDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80EC270A-9D9E-4BD8-BA82-1D76B3201CDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80EC270A-9D9E-4BD8-BA82-1D76B3201CDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12DE9EFF-2362-41B6-B1B9-8A6CAF647A18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12DE9EFF-2362-41B6-B1B9-8A6CAF647A18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12DE9EFF-2362-41B6-B1B9-8A6CAF647A18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12DE9EFF-2362-41B6-B1B9-8A6CAF647A18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35F9692A-D58E-4361-AD4F-7A90E1E79910}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35F9692A-D58E-4361-AD4F-7A90E1E79910}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35F9692A-D58E-4361-AD4F-7A90E1E79910}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35F9692A-D58E-4361-AD4F-7A90E1E79910}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C0AFF9C6-086C-43E6-BED4-0571E851EFE5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C0AFF9C6-086C-43E6-BED4-0571E851EFE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C0AFF9C6-086C-43E6-BED4-0571E851EFE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C0AFF9C6-086C-43E6-BED4-0571E851EFE5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{597FB091-4D6A-4DD4-8D02-6C1AF0B48CE2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{597FB091-4D6A-4DD4-8D02-6C1AF0B48CE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{597FB091-4D6A-4DD4-8D02-6C1AF0B48CE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{597FB091-4D6A-4DD4-8D02-6C1AF0B48CE2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6B6C09A1-7318-4B3E-84CB-BE8A9CFD5587}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B6C09A1-7318-4B3E-84CB-BE8A9CFD5587}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6B6C09A1-7318-4B3E-84CB-BE8A9CFD5587}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B6C09A1-7318-4B3E-84CB-BE8A9CFD5587}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{80EC270A-9D9E-4BD8-BA82-1D76B3201CDA} = {3EC21B19-54CF-467B-8995-30951FE7D9FF}
+		{12DE9EFF-2362-41B6-B1B9-8A6CAF647A18} = {3EC21B19-54CF-467B-8995-30951FE7D9FF}
+		{35F9692A-D58E-4361-AD4F-7A90E1E79910} = {3EC21B19-54CF-467B-8995-30951FE7D9FF}
+		{C0AFF9C6-086C-43E6-BED4-0571E851EFE5} = {3EC21B19-54CF-467B-8995-30951FE7D9FF}
+		{597FB091-4D6A-4DD4-8D02-6C1AF0B48CE2} = {3EC21B19-54CF-467B-8995-30951FE7D9FF}
+		{6B6C09A1-7318-4B3E-84CB-BE8A9CFD5587} = {3EC21B19-54CF-467B-8995-30951FE7D9FF}
+	EndGlobalSection
+EndGlobal

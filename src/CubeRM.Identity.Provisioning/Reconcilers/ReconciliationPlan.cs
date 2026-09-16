@@ -60,10 +60,21 @@ public sealed record ReconciliationPlan(
     };
 }
 
+/// <summary>A single change a reconciler intends to make, as shown in <c>plan</c> output.</summary>
+/// <param name="Action">What will happen to the resource if the plan is applied.</param>
+/// <param name="ResourceType">
+/// The kind of resource, e.g. <c>entra:identityProvider</c> or <c>db:org_domain</c>. Used to
+/// group the plan by system so a reviewer can see at a glance whether a change touches the
+/// shared Entra tenant or only our own database.
+/// </param>
 /// <param name="IdempotencyKey">
 /// Natural key. Everything is upsert-by-natural-key, so a re-run is a no-op and a partial
 /// failure is resumable. A reconciler that cannot safely be re-run is one people avoid
 /// running.
+/// </param>
+/// <param name="Detail">
+/// One line, written for the reviewer of the pull request this plan is posted to — not for
+/// the engineer who wrote the reconciler.
 /// </param>
 public sealed record PlannedChange(
     ChangeAction Action,

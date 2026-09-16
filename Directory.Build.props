@@ -1,0 +1,37 @@
+<Project>
+
+  <!--
+    Shared build settings for every project in the repository.
+
+    Two of these are deliberate and worth not "fixing" later:
+
+      TreatWarningsAsErrors  A warning in token validation or tenant scoping is a security
+                             defect with a friendly name. There is no tolerated-warning
+                             backlog here, and starting one is how it begins.
+
+      GenerateDocumentationFile
+                             Not for shipping docs — for validating them. It is what makes
+                             the compiler check every <see cref="..."/>, so a doc comment
+                             that points at a renamed member fails the build instead of
+                             quietly misleading the next reader. CS1591 (missing comment on
+                             a public member) is suppressed; only *wrong* docs fail.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- Nothing here is published to a package feed. -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>
