@@ -1,0 +1,94 @@
+<!--
+  Fragment: cube-multi-issuer-validate
+
+  ============================================================================
+  WHY READING `iss` FROM AN UNVALIDATED TOKEN IS SAFE HERE
+  ============================================================================
+  The choose below inspects the issuer of a token that has NOT yet been validated, in order
+  to select which validator to run. That looks alarming. It is safe, and only for this
+  reason:
+
+    Every branch then FULLY validates the token against that specific issuer's own JWKS,
+    and every issuer is already on our allowlist.
+
+  An attacker who forges `iss` therefore only selects which validator rejects them. They
+  cannot reach a branch that skips validation, because no such branch exists — otherwise
+  returns 401.
+
+  Do not add a branch that does anything other than fully validate, and do not remove the
+  otherwise. See docs/identity/04-apim-configuration.md §4.3.
+  ============================================================================
+-->
+<fragment>
+  <set-variable name="rawToken"
+                value='@(context.Request.Headers.GetValueOrDefault("Authorization", "").Split(&apos; &apos;).Last())' />
+  <set-variable name="unvalidatedIssuer">
+    <![CDATA[@{
+      try { return ((string)context.Variables["rawToken"]).AsJwt()?.Issuer ?? ""; }
+      catch { return ""; }
+    }]]>
+  </set-variable>
+
+  <choose>
+    <!-- Branch A: the Cube RM External ID tenant. Tokens carry cube_org_id, injected by
+         the claims-enrichment extension from our database. -->
+    <when condition='@((string)context.Variables["unvalidatedIssuer"] == "{{cube-ciam-issuer}}")'>
+      <validate-jwt header-name="Authorization"
+                    failed-validation-httpcode="401"
+                    failed-validation-error-message="Unauthorized"
+                    require-expiration-time="true"
+                    require-signed-tokens="true"
+                    clock-skew="30"
+                    output-token-variable-name="validatedToken">
+        <openid-config url="{{cube-ciam-openid-config}}" />
+        <audiences>
+          <audience>{{api-audience}}</audience>
+        </audiences>
+        <required-claims>
+          <!-- Presence only. Rejects the fail-closed tokens from §2.6 — those issued
+               without organisation enrichment — before they reach the backend. -->
+          <claim name="cube_org_id" match="any" />
+        </required-claims>
+      </validate-jwt>
+      <set-variable name="orgId">
+        <![CDATA[@{
+          var jwt = (Jwt)context.Variables["validatedToken"];
+          return jwt.Claims.GetValueOrDefault("cube_org_id", new string[0]).FirstOrDefault() ?? "";
+        }]]>
+      </set-variable>
+    </when>
+
+    <!-- Branch B: a customer's own Entra workforce tenant (ADR-0004). These tokens carry
+         NO cube_org_id — the backend resolves organisation from the trusted-issuer
+         registry, where issuer to org is one-to-one. Consequently the deny-list fragment
+         cannot gate these; revocation runs through the registry instead (§6.3). -->
+    <when condition='@(((string[])context.Variables.GetValueOrDefault("trustedIssuers", new string[0])).Contains((string)context.Variables["unvalidatedIssuer"]))'>
+      <validate-jwt header-name="Authorization"
+                    failed-validation-httpcode="401"
+                    failed-validation-error-message="Unauthorized"
+                    require-expiration-time="true"
+                    require-signed-tokens="true"
+                    clock-skew="30"
+                    output-token-variable-name="validatedToken">
+        <!-- Per-issuer metadata. A customer rotating their signing key must not disturb
+             another issuer's cached keys. -->
+        <openid-config url='@((string)context.Variables["issuerOpenIdConfigUrl"])' />
+        <audiences>
+          <audience>{{api-audience}}</audience>
+        </audiences>
+      </validate-jwt>
+      <set-variable name="orgId" value="" />
+    </when>
+
+    <!-- No trusted issuer matched. -->
+    <otherwise>
+      <return-response>
+        <set-status code="401" reason="Unauthorized" />
+        <set-header name="Content-Type" exists-action="override">
+          <value>application/json</value>
+        </set-header>
+        <set-body>{"error":"unauthorized"}</set-body>
+      </return-response>
+    </otherwise>
+  </choose>
+</fragment>

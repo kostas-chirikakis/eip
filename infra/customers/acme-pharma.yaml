@@ -1,0 +1,41 @@
+# Federated enterprise customer — corporate SAML IdP.
+# Applied by: cube-identity apply --customer acme-pharma --tenant prod
+apiVersion: identity.cuberm.com/v1
+kind: CustomerOrganization
+metadata:
+  slug: acme-pharma                     # IMMUTABLE — see schema
+  displayName: Acme Pharmaceuticals GmbH
+spec:
+  status: active
+  tier: enterprise
+
+  domains:
+    - domain: acme-pharma.com
+      verified: true
+      verificationRef: DNS-TXT-2026-02-11
+    - domain: acme-pharma.co.uk         # country subsidiary — missing one of these is a day-one support ticket
+      verified: true
+      verificationRef: DNS-TXT-2026-02-11
+
+  authentication:
+    mode: federated
+    federation:
+      protocol: saml
+      displayName: Acme Corporate SSO
+      metadataUrl: https://sso.acme-pharma.com/federationmetadata/2007-06/federationmetadata.xml
+      entityId: urn:acme-pharma:sso
+      claimsMapping:
+        email: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress
+        givenName: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname
+        surname: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname
+      jitProvisioning:
+        enabled: true
+        requireVerifiedDomain: true     # schema-enforced true
+
+  rateLimits:
+    callsPerMinute: 600
+    callsPerDay: 500000
+
+  contacts:
+    securityContact: security@acme-pharma.com
+    technicalContact: it-sso@acme-pharma.com

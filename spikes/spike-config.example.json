@@ -1,0 +1,38 @@
+{
+  "_comment": "Copy to spike-config.json and fill in. Never point this at production.",
+
+  "spike_tenants": {
+    "spike_ciam": {
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "domain": "cubermspike.onmicrosoft.com",
+      "kind": "external",
+      "authority": "https://cubermspike.ciamlogin.com",
+      "disposable": true,
+      "client_id": "00000000-0000-0000-0000-000000000000",
+      "client_secret_env": "SPIKE_CIAM_SECRET"
+    },
+    "spike_partner": {
+      "tenant_id": "00000000-0000-0000-0000-000000000000",
+      "domain": "cubermpartner.onmicrosoft.com",
+      "kind": "workforce",
+      "authority": "https://login.microsoftonline.com",
+      "verified_custom_domain": "spike-partner.example",
+      "disposable": true,
+      "client_id": "00000000-0000-0000-0000-000000000000",
+      "client_secret_env": "SPIKE_PARTNER_SECRET"
+    }
+  },
+
+  "r2": {
+    "endpoint_public_url": "https://<your-tunnel-or-container-app>/internal/token-issuance",
+    "expected_audience": "api://cube-claims-enrichment-spike"
+  },
+
+  "r3": {
+    "sign_in_start_url": "https://cubermspike.ciamlogin.com/cubermspike.onmicrosoft.com/oauth2/v2.0/authorize",
+    "client_id": "00000000-0000-0000-0000-000000000000",
+    "redirect_uri": "http://localhost:5173/callback",
+    "org_a_domain": "spike-org-a.example",
+    "org_b_domain": "spike-org-b.example"
+  }
+}

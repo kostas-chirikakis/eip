@@ -1,0 +1,52 @@
+<!--
+  Fragment: cube-org-deny-list
+
+  Fast revocation. Access tokens live 60-90 minutes; disabling a customer in Entra stops
+  NEW tokens but does nothing about those already in browsers and BFF caches. This closes
+  that window to the cache TTL (30 s), independent of token lifetime.
+
+  Fail-closed is deliberate: ignore-error="false" means a cold cache during an identity
+  service outage returns 5xx rather than admitting suspended organisations. Briefly failing
+  closed is the correct trade for a control a customer's security team relies on.
+  See docs/identity/04-apim-configuration.md §4.4.
+-->
+<fragment>
+  <choose>
+    <!-- Trusted-issuer tokens carry no orgId at the gateway; they are gated in-app by the
+         registry instead. Skip rather than fail. -->
+    <when condition='@(!string.IsNullOrEmpty((string)context.Variables.GetValueOrDefault("orgId", "")))'>
+      <cache-lookup-value key="cube-suspended-orgs" variable-name="suspendedOrgs" caching-type="internal" />
+
+      <choose>
+        <when condition='@(!context.Variables.ContainsKey("suspendedOrgs"))'>
+          <send-request mode="new" response-variable-name="denyResp" timeout="5" ignore-error="false">
+            <set-url>{{identity-service-base}}/internal/suspended-orgs</set-url>
+            <set-method>GET</set-method>
+            <authentication-managed-identity resource="{{identity-service-resource}}" />
+          </send-request>
+          <set-variable name="suspendedOrgs">
+            <![CDATA[@{
+              var body = ((IResponse)context.Variables["denyResp"]).Body.As<JArray>();
+              return body.Select(t => t.ToString()).ToArray();
+            }]]>
+          </set-variable>
+          <cache-store-value key="cube-suspended-orgs"
+                             value='@(context.Variables["suspendedOrgs"])'
+                             duration="30" caching-type="internal" />
+        </when>
+      </choose>
+
+      <choose>
+        <when condition='@(((string[])context.Variables["suspendedOrgs"]).Contains((string)context.Variables["orgId"]))'>
+          <return-response>
+            <set-status code="403" reason="Forbidden" />
+            <set-header name="Content-Type" exists-action="override">
+              <value>application/json</value>
+            </set-header>
+            <set-body>{"error":"organization_suspended"}</set-body>
+          </return-response>
+        </when>
+      </choose>
+    </when>
+  </choose>
+</fragment>

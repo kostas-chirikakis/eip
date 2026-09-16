@@ -1,0 +1,132 @@
+name: Identity checks
+
+on:
+  pull_request:
+    paths:
+      - 'infra/**'
+      - 'db/**'
+      - 'docs/identity/**'
+      - 'src/**'
+      - 'tests/**'
+      - '.github/workflows/identity-checks.yml'
+  push:
+    branches: [main]
+
+jobs:
+  customer-declarations:
+    name: Customer declarations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pyyaml jsonschema
+      # Schema validation, cross-customer domain collision, filename/slug agreement.
+      # The collision check is the important one: two organisations claiming the same
+      # email domain silently routes one customer's users to another's IdP.
+      - run: python3 scripts/validate-customers.py
+
+  apim-policies:
+    name: APIM policy XML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # A malformed policy is otherwise only discovered at deploy time.
+      - run: |
+          python3 - <<'PY'
+          import glob, sys, xml.etree.ElementTree as ET
+          bad = 0
+          for f in sorted(glob.glob('infra/apim/policies/**/*.xml', recursive=True)):
+              try:
+                  ET.parse(f); print(f"  ok   {f}")
+              except Exception as e:
+                  bad += 1; print(f"  FAIL {f}: {e}")
+          sys.exit(1 if bad else 0)
+          PY
+
+  tenant-isolation:
+    name: Tenant isolation (RLS)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cubeidentity
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+        ports: ['5432:5432']
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: cubeidentity
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migrations
+        run: |
+          set -e
+          for f in db/migrations/*.sql; do
+            echo "=== $f ==="
+            psql -v ON_ERROR_STOP=1 -f "$f"
+          done
+      - name: Seed two customer organisations
+        run: psql -v ON_ERROR_STOP=1 -f tests/sql/rls_isolation_seed.sql
+      - name: Prove isolation as cube_app
+        # As cube_app, NOT postgres. A superuser bypasses RLS entirely regardless of
+        # FORCE ROW LEVEL SECURITY, so running this as postgres would prove nothing.
+        run: |
+          psql -c "alter role cube_app with password 'ci-only';"
+          PGUSER=cube_app PGPASSWORD=ci-only psql -v ON_ERROR_STOP=1 \
+            -f tests/sql/rls_isolation_test.sql
+      - name: Assert schema invariants
+        run: |
+          psql -v ON_ERROR_STOP=1 -t -A -F',' \
+            -c "select check_name, passed from identity.assert_tenant_isolation_invariants();" \
+            | tee /tmp/invariants.csv
+          if grep -q ',f$' /tmp/invariants.csv; then
+            echo "::error::Tenant isolation invariant failed"
+            exit 1
+          fi
+
+  diagrams:
+    name: Mermaid diagrams
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save mermaid@11 jsdom
+      - run: node scripts/check-mermaid.mjs docs/identity/*.md docs/identity/adr/*.md
+
+  spikes:
+    name: Spike scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install -r spikes/requirements.txt
+      # The spike harness gates production safety: it must refuse any tenant not
+      # explicitly marked disposable. That guard is tested, not assumed.
+      - run: python -m compileall -q spikes
+      - run: node --check spikes/r3_domain_routing/probe_idp_reachability.mjs
+      - run: python scripts/test_spike_guard.py
+
+  doc-links:
+    name: Doc cross-references
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # A broken anchor silently detaches a mitigation from the risk it mitigates.
+      - run: python3 scripts/check-doc-links.py

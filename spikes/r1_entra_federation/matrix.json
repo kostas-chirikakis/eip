@@ -1,0 +1,146 @@
+{
+  "_comment": [
+    "Federation attempts for R1, run in order. Each entry is a HYPOTHESIS about what the",
+    "documentation implies should work. Several will fail — that is the finding.",
+    "",
+    "When one fails in an interesting way, EDIT THIS FILE and re-run. Add variants. The",
+    "matrix is the working artifact of the spike, not fixed input.",
+    "",
+    "Placeholders substituted at runtime:",
+    "  {partner_tenant_id}      spike_partner tenant id",
+    "  {partner_domain}         spike_partner .onmicrosoft.com domain",
+    "  {partner_custom_domain}  custom domain VERIFIED in spike_partner",
+    "  {ciam_tenant_id}         spike_ciam tenant id"
+  ],
+
+  "attempts": [
+    {
+      "id": "A0-control",
+      "question": "Does IdP creation work at all in this tenant, with a non-Microsoft OIDC provider?",
+      "why": "Control. If this fails, the spike is misconfigured rather than the feature being blocked. Run it first and do not interpret anything else until it passes.",
+      "method": "POST",
+      "path": "identity/identityProviders",
+      "api_version": "v1.0",
+      "body": {
+        "@odata.type": "#microsoft.graph.oidcIdentityProvider",
+        "displayName": "spike-control-generic-oidc",
+        "issuer": "https://accounts.google.com",
+        "clientId": "spike-control-client-id",
+        "clientSecret": "spike-control-secret",
+        "responseType": "code",
+        "scope": "openid email profile",
+        "wellKnownEndpoint": "https://accounts.google.com/.well-known/openid-configuration"
+      },
+      "expect": "success",
+      "cleanup": true
+    },
+
+    {
+      "id": "A1-oidc-partner-entra",
+      "question": "Can we add the partner's Entra tenant as a custom OIDC identity provider?",
+      "why": "The headline question. Reports suggest Microsoft blocks Entra-as-OIDC-provider-for-Entra in some configurations. If this works, standard federation is viable for Entra customers.",
+      "method": "POST",
+      "path": "identity/identityProviders",
+      "api_version": "v1.0",
+      "body": {
+        "@odata.type": "#microsoft.graph.oidcIdentityProvider",
+        "displayName": "spike-partner-entra-oidc",
+        "issuer": "https://login.microsoftonline.com/{partner_tenant_id}/v2.0",
+        "clientId": "REPLACE_WITH_APP_REGISTERED_IN_PARTNER_TENANT",
+        "clientSecret": "REPLACE_WITH_THAT_APPS_SECRET",
+        "responseType": "code",
+        "scope": "openid email profile",
+        "wellKnownEndpoint": "https://login.microsoftonline.com/{partner_tenant_id}/v2.0/.well-known/openid-configuration"
+      },
+      "expect": "unknown",
+      "cleanup": true,
+      "on_failure_try": [
+        "Swap responseType to 'id_token' — some providers reject 'code' here.",
+        "Try the /beta endpoint (set api_version to 'beta') and compare the error.",
+        "Try issuer WITHOUT the /v2.0 suffix — issuer-matching is a common failure point.",
+        "Register the client app as multi-tenant in the partner tenant and retry."
+      ]
+    },
+
+    {
+      "id": "A2-oidc-partner-entra-beta",
+      "question": "Same as A1, against the beta endpoint.",
+      "why": "v1.0 and beta diverge on External ID features more often than they should. A difference here is itself worth recording.",
+      "method": "POST",
+      "path": "identity/identityProviders",
+      "api_version": "beta",
+      "body": {
+        "@odata.type": "#microsoft.graph.oidcIdentityProvider",
+        "displayName": "spike-partner-entra-oidc-beta",
+        "issuer": "https://login.microsoftonline.com/{partner_tenant_id}/v2.0",
+        "clientId": "REPLACE_WITH_APP_REGISTERED_IN_PARTNER_TENANT",
+        "clientSecret": "REPLACE_WITH_THAT_APPS_SECRET",
+        "responseType": "code",
+        "scope": "openid email profile",
+        "wellKnownEndpoint": "https://login.microsoftonline.com/{partner_tenant_id}/v2.0/.well-known/openid-configuration"
+      },
+      "expect": "unknown",
+      "cleanup": true
+    },
+
+    {
+      "id": "A3-saml-verified-domain",
+      "question": "Can we create SAML/WS-Fed federation for a domain that is VERIFIED in the partner's Entra tenant?",
+      "why": "The single most likely blocked case. Entra has long refused direct federation for domains already verified in another Entra tenant. If blocked, every customer whose email domain is verified in their own Entra tenant — i.e. most of them — cannot use this path.",
+      "method": "POST",
+      "path": "directory/federationConfigurations",
+      "api_version": "beta",
+      "body": {
+        "@odata.type": "#microsoft.graph.samlOrWsFedExternalDomainFederation",
+        "displayName": "spike-partner-saml-verified",
+        "issuerUri": "https://sts.windows.net/{partner_tenant_id}/",
+        "metadataExchangeUri": "https://login.microsoftonline.com/{partner_domain}/federationmetadata/2007-06/federationmetadata.xml",
+        "passiveSignInUri": "https://login.microsoftonline.com/{partner_tenant_id}/saml2",
+        "preferredAuthenticationProtocol": "saml",
+        "domains": [
+          { "@odata.type": "microsoft.graph.externalDomainName", "id": "{partner_custom_domain}" }
+        ]
+      },
+      "expect": "likely_blocked",
+      "cleanup": true,
+      "on_failure_try": [
+        "Record the EXACT error code. 'domain is already verified in another tenant' is the finding we expect and the one to quote in the decision table.",
+        "Retry with an unverified domain (A4) to confirm the verified-ness is what blocks it, not the request shape."
+      ]
+    },
+
+    {
+      "id": "A4-saml-unverified-domain",
+      "question": "Same SAML federation, but for a domain NOT verified anywhere.",
+      "why": "Isolates the cause. If A3 fails and A4 succeeds, the blocker is specifically domain verification in the partner tenant — which is a precise, quotable finding rather than 'SAML didn't work'.",
+      "method": "POST",
+      "path": "directory/federationConfigurations",
+      "api_version": "beta",
+      "body": {
+        "@odata.type": "#microsoft.graph.samlOrWsFedExternalDomainFederation",
+        "displayName": "spike-unverified-saml",
+        "issuerUri": "https://spike-idp.example/sts",
+        "metadataExchangeUri": "https://spike-idp.example/federationmetadata.xml",
+        "passiveSignInUri": "https://spike-idp.example/saml2",
+        "preferredAuthenticationProtocol": "saml",
+        "domains": [
+          { "@odata.type": "microsoft.graph.externalDomainName", "id": "spike-unclaimed-domain.example" }
+        ]
+      },
+      "expect": "unknown",
+      "cleanup": true
+    },
+
+    {
+      "id": "A5-list-existing",
+      "question": "What identity provider types does this tenant actually report as available?",
+      "why": "Read-only. Ground truth on what the tenant supports, independent of what any doc claims. Run it last so it also shows cleanup worked.",
+      "method": "GET",
+      "path": "identity/identityProviders/availableProviderTypes",
+      "api_version": "v1.0",
+      "body": null,
+      "expect": "success",
+      "cleanup": false
+    }
+  ]
+}

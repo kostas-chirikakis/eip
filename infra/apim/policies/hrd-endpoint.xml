@@ -1,0 +1,44 @@
+<!--
+  Policy for POST /auth/discover — unauthenticated home-realm discovery (ADR-0003).
+
+  Public and unauthenticated, reading the organisation registry. Three properties matter
+  more than anything else: no enumeration oracle, aggressive rate limiting, low latency.
+-->
+<policies>
+  <inbound>
+    <!-- Per-IP, because there is no organisation to key on before authentication. -->
+    <rate-limit-by-key calls="20" renewal-period="60"
+                       counter-key="@(context.Request.IpAddress)" />
+    <quota-by-key calls="500" renewal-period="3600"
+                  counter-key="@(context.Request.IpAddress)" />
+
+    <!-- Bound the payload: this endpoint takes an email and a client id, nothing more. -->
+    <choose>
+      <when condition="@(context.Request.Body.As&lt;string&gt;(preserveContent: true).Length &gt; 512)">
+        <return-response>
+          <set-status code="400" reason="Bad Request" />
+          <set-header name="Content-Type" exists-action="override">
+            <value>application/json</value>
+          </set-header>
+          <set-body>{"error":"invalid_request"}</set-body>
+        </return-response>
+      </when>
+    </choose>
+
+    <set-header name="X-Cube-Correlation-Id" exists-action="skip">
+      <value>@(context.RequestId.ToString())</value>
+    </set-header>
+    <base />
+  </inbound>
+  <backend><base /></backend>
+  <outbound>
+    <!-- Enumeration resistance: the backend already returns identical shapes for known and
+         unknown domains. Caching must not reintroduce a timing oracle, so this response is
+         never cached at the gateway. -->
+    <set-header name="Cache-Control" exists-action="override">
+      <value>no-store</value>
+    </set-header>
+    <base />
+  </outbound>
+  <on-error><base /></on-error>
+</policies>

@@ -1,0 +1,6 @@
+# Filled-in config carries tenant ids and client ids. Never committed.
+spike-config.json
+
+# Evidence is run output: transcripts, screenshots, summaries. Keep it locally and attach
+# the relevant SUMMARY.md to RESULTS.md or a support ticket — do not commit the raw runs.
+evidence/
