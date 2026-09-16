@@ -180,3 +180,24 @@ gantt
 from day one.** Everything downstream of them is either blocked or is building something
 that may need to change. Nothing else in this plan is worth starting before those two have
 answers.
+
+---
+
+## Runnable spike plans
+
+The Phase 0 spikes are implemented as executable scripts in [`spikes/`](../../spikes),
+not just described here:
+
+| Spike | Entry point |
+| --- | --- |
+| R1 federation matrix | `python -m spikes.r1_entra_federation.run_matrix` |
+| R1 trusted-issuer fallback | `python -m spikes.r1_entra_federation.test_trusted_issuer` |
+| R2 instrumented endpoint | `python -m spikes.r2_token_issuance.endpoint` |
+| R2 analysis | `python -m spikes.r2_token_issuance.analyze` |
+| R3 IdP reachability | `node spikes/r3_domain_routing/probe_idp_reachability.mjs` |
+| R4 enumeration probes | `python -m spikes.r4_directory_enumeration.run_probes` |
+
+Every run captures evidence — full request/response transcripts including Graph
+`request-id` values — and every script refuses to touch a tenant not explicitly marked
+disposable. Outcomes land in [`spikes/RESULTS.md`](../../spikes/RESULTS.md), which is the
+decision table that Phase 2 scope and the §5.6 sales gate both read from.

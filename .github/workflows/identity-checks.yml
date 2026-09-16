@@ -102,6 +102,24 @@ jobs:
       - run: npm install --no-save mermaid@11 jsdom
       - run: node scripts/check-mermaid.mjs docs/identity/*.md docs/identity/adr/*.md
 
+  spikes:
+    name: Spike scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install -r spikes/requirements.txt
+      # The spike harness gates production safety: it must refuse any tenant not
+      # explicitly marked disposable. That guard is tested, not assumed.
+      - run: python -m compileall -q spikes
+      - run: node --check spikes/r3_domain_routing/probe_idp_reachability.mjs
+      - run: python scripts/test_spike_guard.py
+
   doc-links:
     name: Doc cross-references
     runs-on: ubuntu-latest
