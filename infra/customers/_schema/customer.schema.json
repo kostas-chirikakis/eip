@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://identity.cuberm.com/schemas/customer-organization/v1",
+  "title": "Cube RM customer organisation declaration",
+  "description": "One file per customer under infra/customers/. Applied by CubeRM.Identity.Provisioning. Several constraints here exist to make dangerous configurations unrepresentable rather than merely discouraged.",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": { "const": "identity.cuberm.com/v1" },
+    "kind": { "const": "CustomerOrganization" },
+    "metadata": {
+      "type": "object",
+      "required": ["slug", "displayName"],
+      "additionalProperties": false,
+      "properties": {
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{2,30}$",
+          "description": "IMMUTABLE. Embedded in Entra object names; renaming requires directory churn across the shared tenant. A rebrand changes displayName only."
+        },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 200 }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["status", "tier", "domains", "authentication", "contacts"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "enum": ["active", "suspended", "offboarding", "offboarded"] },
+        "tier": { "enum": ["standard", "enterprise"] },
+        "domains": {
+          "type": "array",
+          "minItems": 1,
+          "description": "CI additionally checks these against every other customer file. A domain claimed by two organisations silently routes one customer's users to another's IdP.",
+          "items": {
+            "type": "object",
+            "required": ["domain", "verified"],
+            "additionalProperties": false,
+            "properties": {
+              "domain": {
+                "type": "string",
+                "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$",
+                "description": "Lowercase, punycode for IDN. Normalisation is not performed for you — a mixed-case entry is a validation failure, so the file always matches what is stored."
+              },
+              "verified": { "type": "boolean" },
+              "verificationRef": { "type": "string" }
+            },
+            "allOf": [
+              {
+                "if": { "properties": { "verified": { "const": true } }, "required": ["verified"] },
+                "then": {
+                  "required": ["verificationRef"],
+                  "description": "A verified domain must cite its DNS TXT challenge, so the claim is auditable."
+                }
+              }
+            ]
+          }
+        },
+        "authentication": {
+          "type": "object",
+          "required": ["mode"],
+          "additionalProperties": false,
+          "properties": {
+            "mode": { "enum": ["local", "federated", "trusted-issuer"] },
+            "federation": {
+              "type": "object",
+              "required": ["protocol", "displayName", "claimsMapping", "jitProvisioning"],
+              "additionalProperties": false,
+              "properties": {
+                "protocol": { "enum": ["saml", "oidc"] },
+                "displayName": { "type": "string" },
+                "metadataUrl": { "type": "string", "format": "uri", "pattern": "^https://" },
+                "entityId": { "type": "string" },
+                "claimsMapping": {
+                  "type": "object",
+                  "required": ["email"],
+                  "properties": {
+                    "email": { "type": "string" },
+                    "givenName": { "type": "string" },
+                    "surname": { "type": "string" }
+                  }
+                },
+                "jitProvisioning": {
+                  "type": "object",
+                  "required": ["enabled", "requireVerifiedDomain"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "enabled": { "type": "boolean" },
+                    "requireVerifiedDomain": {
+                      "const": true,
+                      "description": "Schema-enforced true. JIT provisioning plus a shared tenant plus a mis-pinned IdP is the exact combination that silently creates a cross-organisation account, so deriving org from anything but a verified email domain is made unrepresentable."
+                    }
+                  }
+                }
+              }
+            },
+            "trustedIssuer": {
+              "type": "object",
+              "required": ["entraTenantId", "issuerUrl", "allowedAudiences"],
+              "additionalProperties": false,
+              "description": "ADR-0004. The customer's own Entra tenant, trusted directly.",
+              "properties": {
+                "entraTenantId": { "type": "string", "format": "uuid" },
+                "issuerUrl": { "type": "string", "pattern": "^https://" },
+                "allowedAudiences": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+              }
+            },
+            "local": {
+              "type": "object",
+              "required": ["selfServiceSignUp"],
+              "additionalProperties": false,
+              "properties": {
+                "selfServiceSignUp": {
+                  "const": false,
+                  "description": "Schema-enforced false. In a shared tenant, open sign-up lets anyone create an account against an unverified domain. Accounts are invitation-only."
+                },
+                "initialAdmins": {
+                  "type": "array",
+                  "items": { "type": "string", "format": "email" }
+                }
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "mode": { "const": "federated" } }, "required": ["mode"] },
+              "then": { "required": ["federation"] }
+            },
+            {
+              "if": { "properties": { "mode": { "const": "trusted-issuer" } }, "required": ["mode"] },
+              "then": { "required": ["trustedIssuer"] }
+            },
+            {
+              "if": { "properties": { "mode": { "const": "local" } }, "required": ["mode"] },
+              "then": { "required": ["local"] }
+            }
+          ]
+        },
+        "rateLimits": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "callsPerMinute": { "type": "integer", "minimum": 1 },
+            "callsPerDay": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "contacts": {
+          "type": "object",
+          "required": ["securityContact", "technicalContact"],
+          "additionalProperties": false,
+          "properties": {
+            "securityContact": { "type": "string", "format": "email" },
+            "technicalContact": { "type": "string", "format": "email" }
+          }
+        }
+      }
+    }
+  }
+}

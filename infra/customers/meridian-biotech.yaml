@@ -1,0 +1,35 @@
+# Customer on their own Entra workforce tenant, trusted directly as an additional issuer
+# (ADR-0004). Their users authenticate against their tenant and are NOT our MAU (§8.5).
+#
+# Chosen over `federated` per the decision gate in docs/identity/05-onboarding-runbook.md
+# §5.6 — do not commit a federation date for an Entra customer before spike R1 lands.
+apiVersion: identity.cuberm.com/v1
+kind: CustomerOrganization
+metadata:
+  slug: meridian-biotech
+  displayName: Meridian Biotech S.A.
+spec:
+  status: active
+  tier: enterprise
+
+  domains:
+    - domain: meridian-biotech.com
+      verified: true
+      verificationRef: DNS-TXT-2026-04-19
+
+  authentication:
+    mode: trusted-issuer
+    trustedIssuer:
+      entraTenantId: 7c3f9a12-4d6b-4e21-9f88-2b5c1e0a7d43
+      issuerUrl: https://login.microsoftonline.com/7c3f9a12-4d6b-4e21-9f88-2b5c1e0a7d43/v2.0
+      allowedAudiences:
+        - api://cube-tenderhub
+        - api://cube-contracts
+
+  rateLimits:
+    callsPerMinute: 600
+    callsPerDay: 500000
+
+  contacts:
+    securityContact: security@meridian-biotech.com
+    technicalContact: identity@meridian-biotech.com

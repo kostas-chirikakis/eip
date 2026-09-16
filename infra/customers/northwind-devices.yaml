@@ -1,0 +1,29 @@
+# Local-account customer — declined SSO. Accounts live in the Cube RM external tenant.
+apiVersion: identity.cuberm.com/v1
+kind: CustomerOrganization
+metadata:
+  slug: northwind-devices
+  displayName: Northwind Medical Devices Ltd
+spec:
+  status: active
+  tier: standard
+
+  domains:
+    - domain: northwind-devices.com
+      verified: true
+      verificationRef: DNS-TXT-2026-03-02
+
+  authentication:
+    mode: local
+    local:
+      selfServiceSignUp: false          # schema-enforced false — invitation only
+      initialAdmins:
+        - admin@northwind-devices.com
+
+  rateLimits:
+    callsPerMinute: 300
+    callsPerDay: 200000
+
+  contacts:
+    securityContact: infosec@northwind-devices.com
+    technicalContact: it@northwind-devices.com
